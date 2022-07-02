@@ -3,12 +3,20 @@ const bodyParser = require("body-parser");
 const mongoose = require('mongoose');
 const ejs = require('ejs');
 const express = require('express');
-const encrypt = require('mongoose-encryption');
+
+// const encrypt = require('mongoose-encryption');
+
+// const md5 = require('md5');
+
+const bcrypt = require('bcryptjs');
+const salt = bcrypt.genSaltSync(10);
+
 
 // Set-up Express
 const app = express();
 
 console.log(process.env.API_KEY);
+// console.log(md5('123456'));
 
 app.set('view engine', 'ejs');
 
@@ -37,7 +45,7 @@ const userSchema = new mongoose.Schema ({
     password: String
 })
 
-userSchema.plugin(encrypt, {secret: process.env.SECRET_MESSAGE, encryptedFields: ['password']});
+// userSchema.plugin(encrypt, {secret: process.env.SECRET_MESSAGE, encryptedFields: ['password']});
 
 const secret = mongoose.model('secret', secretSchema);
 const user = mongoose.model('user', userSchema);
@@ -54,16 +62,16 @@ app.get("/login", function(req, res){
 
 // GET login page and Log-in 
 
-app.post("/login", function(req, res){
-    const username = req.body.username;
+app.post("/login", function (req, res) {
+    const email = req.body.email;
     const password = req.body.password;
-
-    user.findOne({email: username}, function(err, foundUser){
-        if (err){
+ 
+    user.findOne({ email: email }, function (err, foundUser) {
+        if (err) {
             console.log(err);
-        } else{
-            if (foundUser){
-                if (foundUser.password === password) {
+        } else {
+            if (foundUser) {
+                if (bcrypt.compareSync(password, foundUser.password)) {
                     res.render("secrets");
                 }
             }
@@ -76,21 +84,25 @@ app.post("/login", function(req, res){
 app.get("/register", function(req, res){
     res.render("register");
 });
-
-app.post("/register", function(req, res){
+ 
+app.post("/register", function (req, res) {
+    const email = req.body.email;
+    const password = req.body.password;
+    const hash = bcrypt.hashSync(password, salt);
+ 
     const newUser = new user({
-        email: req.body.username,
-        password: req.body.password
+        email: email,
+        password: hash
     });
-
-    newUser.save(function(err){
-        if(!err){
-            res.render("secrets");
-            console.log("Succesfully created account.");
-        } else{
+ 
+    newUser.save(function (err) {
+        if (err) {
             console.log(err);
+        } else {
+            res.render("secrets");
         }
     });
+ 
 });
 
 // Node.js port
