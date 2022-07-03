@@ -22,6 +22,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const passportLocalMongoose = require('passport-local-mongoose');
+const LocalStrategy = require("passport-local");
 
 
 // Set-up Express
@@ -101,9 +102,9 @@ app.get("/login", function(req, res){
 
 app.post("/login", passport.authenticate("local",{
     successRedirect: "/secrets",
-    failureRedirect: "/login"
+    failureRedirect: "/login",
 }), function(req, res){
-    
+    console.log(req.body.username);
 });
 
 // GET register page and register user
@@ -115,13 +116,18 @@ app.get("/register", function(req, res){
 // check if isLoggedIn and redirect
 
 app.get("/secrets", function(req, res){
-    res.render("secrets");
+    if (req.isAuthenticated()){
+        res.render("secrets");
+    } else {
+        res.redirect("/login");
+    }
 });
  
 app.post("/register", function (req, res) {
     user.register({username: req.body.username}, req.body.password, function(err, user) {
         if (err) {
             console.log(err);
+            console.log(req.body.username)
             res.redirect("/register")
         } else{
             passport.authenticate("local")(req, res, function(){
@@ -130,17 +136,6 @@ app.post("/register", function (req, res) {
         }
       });
 });
-
-// Logout
-// app.get("/logout", function(req,res){
-//         req.logout((err)=>{
-//             if(err){
-//                 console.log(err);
-//             }else{
-//                 res.redirect("/");
-//             }
-//         });
-//     });
 
 // LOGOUT PART is not really loggin out the user it is just redirecting him to the differetn page
 
