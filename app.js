@@ -68,7 +68,6 @@ async function main() {
 // Settting the initial schema
 
 const secretSchema = new mongoose.Schema({
-    title: String,
     content: String
 });
 
@@ -76,7 +75,8 @@ const userSchema = new mongoose.Schema ({
     email: String,
     password: String,
     googleId: String,
-    facebookId: String
+    facebookId: String,
+    secret: String
 });
 
 // passport-mongoose initialize
@@ -187,11 +187,42 @@ app.get("/register", function(req, res){
 // check if isLoggedIn and redirect
 
 app.get("/secrets", function(req, res){
+    user.find({"secret": {$ne:null}}, function(err, foundUsers){
+        if (err) {
+            console.log(err);
+        } else {
+            if (foundUsers) {
+                res.render("secrets", {usersWithSecrets: foundUsers});
+            }
+        }
+    });
+});
+
+// Submit a secrete route POST and GET
+
+app.get("/submit", function(req, res){
     if (req.isAuthenticated()){
-        res.render("secrets");
+        res.render("submit");
     } else {
         res.redirect("/login");
     }
+});
+
+app.post("/submit", function(req, res){
+    const submittedSecret = req.body.secret;
+
+    console.log(req.user.id);
+
+    user.findById(req.user.id, function (err, foundUser) {
+        if (err) {
+            console.log(err);
+        } else {
+            foundUser.secret = submittedSecret;
+            foundUser.save(function(){
+                res.redirect("/secrets");
+            });
+        }
+    });
 });
  
 app.post("/register", function (req, res) {
